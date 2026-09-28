@@ -22,6 +22,17 @@ test("loads today's clip and the empty board", async ({ page }) => {
   });
 });
 
+test("tapping the clip restarts it from the beginning", async ({ page }) => {
+  const clip = page.locator("#clip");
+  await page.waitForFunction(
+    () => (document.getElementById("clip") as HTMLVideoElement).currentTime > 0.5,
+  );
+  await page.locator("#clip-tap").click();
+  const t = await clip.evaluate((v: HTMLVideoElement) => v.currentTime);
+  expect(t).toBeLessThan(0.4);
+  await expect(page.locator("#clip-tap-label")).toBeHidden();
+});
+
 test("rejects non-words and repeats without counting them", async ({ page }) => {
   await guess(page, "zzzzz");
   await expect(page.locator("#feedback")).toHaveText("Not in the word list.");
