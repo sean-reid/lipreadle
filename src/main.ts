@@ -58,10 +58,7 @@ function playFromStart(): void {
 
 video.addEventListener("ended", () => {
   clearTimeout(loopTimer);
-  loopTimer = setTimeout(() => {
-    if (!video.muted) video.muted = true;
-    playFromStart();
-  }, LOOP_PAUSE_MS);
+  loopTimer = setTimeout(playFromStart, LOOP_PAUSE_MS);
 });
 
 video.addEventListener("playing", () => (tapLabel.hidden = true));
@@ -84,7 +81,11 @@ function loadClip(src: string): void {
   }, AUTOPLAY_GRACE_MS);
 }
 
-$("clip-tap").addEventListener("click", playFromStart);
+// Once solved the clip plays with sound; a restored solve needs this tap to unmute.
+$("clip-tap").addEventListener("click", () => {
+  if (state?.solved) video.muted = false;
+  playFromStart();
+});
 
 const slow = $<HTMLButtonElement>("slow");
 slow.addEventListener("click", () => {

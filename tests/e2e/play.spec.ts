@@ -58,10 +58,15 @@ test("plays through to a solve, shows the histogram, and remembers it", async ({
     fullPage: true,
   });
 
+  await expect(page.locator("#clip")).toHaveJSProperty("muted", false);
+
   await page.reload();
   await expect(page.locator("#result-title")).toHaveText("Solved in 3.");
   await expect(page.locator("#guesses li")).toHaveCount(3);
   await expect(page.locator("#guess-input")).toBeDisabled();
+  await expect(page.locator("#clip")).toHaveJSProperty("muted", true);
+  await page.locator("#clip-tap").click();
+  await expect(page.locator("#clip")).toHaveJSProperty("muted", false);
 });
 
 test("theme toggle persists across reloads", async ({ page }) => {
