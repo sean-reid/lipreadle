@@ -66,6 +66,24 @@ video.addEventListener("ended", () => {
 
 video.addEventListener("playing", () => (tapLabel.hidden = true));
 
+const AUTOPLAY_GRACE_MS = 1500;
+
+// iOS Safari sometimes ignores the muted attribute and defers loading until
+// play is requested, so set both from script, load explicitly, and fall back to
+// the tap label if nothing is playing shortly after the source is set.
+function loadClip(src: string): void {
+  video.muted = true;
+  video.defaultMuted = true;
+  video.src = src;
+  video.load();
+  const attempt = () => video.paused && tryPlay();
+  video.addEventListener("loadedmetadata", attempt, { once: true });
+  video.addEventListener("canplay", attempt, { once: true });
+  setTimeout(() => {
+    if (video.paused) tapLabel.hidden = false;
+  }, AUTOPLAY_GRACE_MS);
+}
+
 $("clip-tap").addEventListener("click", playFromStart);
 
 const slow = $<HTMLButtonElement>("slow");
@@ -261,8 +279,7 @@ async function start(): Promise<void> {
     const puzzle = await fetchPuzzle(date);
     issue.textContent = `No. ${puzzle.number} · ${formatIssueDate(date)}`;
     state = loadState(puzzle.number);
-    video.src = puzzle.clip;
-    video.addEventListener("canplay", () => video.paused && tryPlay(), { once: true });
+    loadClip(puzzle.clip);
     state.guesses.forEach((g, i) => addGuessRow(g, false, state?.matches[i] ?? 0));
     if (state.guesses.length > 0) intro.hidden = true;
     if (state.solved) {
