@@ -8,6 +8,7 @@ import {
   parseRange,
   puzzleNumber,
   wordSet,
+  wrapNumber,
 } from "./lib";
 import { similarity, visemeTable } from "./visemes";
 import { matchLevel } from "../shared/feedback";
@@ -50,10 +51,19 @@ async function readJson(request: Request): Promise<Record<string, unknown> | nul
   }
 }
 
-async function loadPuzzle(env: Env, number: number): Promise<PuzzleRow | null> {
+async function puzzleRow(env: Env, number: number): Promise<PuzzleRow | null> {
   return env.DB.prepare("SELECT number, word, clip, accent FROM puzzles WHERE number = ?")
     .bind(number)
     .first<PuzzleRow>();
+}
+
+async function loadPuzzle(env: Env, number: number): Promise<PuzzleRow | null> {
+  const row = await puzzleRow(env, number);
+  if (row) return row;
+  const highest = await env.DB.prepare("SELECT MAX(number) AS hi FROM puzzles").first<number>("hi");
+  if (!highest) return null;
+  const wrapped = wrapNumber(number, highest);
+  return wrapped === number ? null : puzzleRow(env, wrapped);
 }
 
 function clientKey(request: Request): string {
