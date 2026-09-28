@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "lipreadle",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "44e47649-410a-4edd-b826-aa792ed2832a",
       "migrations_dir": "migrations",
     },
   ],
