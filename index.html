@@ -38,6 +38,7 @@
         <div class="clip-frame">
           <video
             id="clip"
+            autoplay
             playsinline
             muted
             preload="auto"
@@ -45,10 +46,17 @@
             height="360"
             aria-label="A mouth saying today's word"
           ></video>
+          <button
+            type="button"
+            class="clip-tap"
+            id="clip-tap"
+            aria-label="Play the clip again from the start"
+          >
+            <span class="clip-tap-label" id="clip-tap-label" hidden>Tap to play</span>
+          </button>
           <p class="notice" id="notice" hidden></p>
         </div>
         <div class="controls">
-          <button type="button" id="replay">Replay</button>
           <button type="button" id="slow" aria-pressed="false">Half speed</button>
         </div>
       </section>
@@ -104,7 +112,8 @@
         get it. Fewer guesses is a better score.
       </p>
       <p>
-        Replay as often as you like. Half speed helps. So does saying the word yourself in a mirror.
+        The clip loops. Tap it to start again from the beginning. Half speed helps, and so does
+        saying the word yourself in a mirror.
       </p>
       <p>A new word arrives at midnight, your time.</p>
       <form method="dialog"><button type="submit">Close</button></form>

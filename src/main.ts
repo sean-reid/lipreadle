@@ -40,11 +40,20 @@ let busy = false;
 
 const LOOP_PAUSE_MS = 700;
 let loopTimer: ReturnType<typeof setTimeout> | undefined;
+const tapLabel = $<HTMLSpanElement>("clip-tap-label");
+
+// Browsers that refuse autoplay reject play(); the label tells the player to tap.
+function tryPlay(): void {
+  void video.play().then(
+    () => (tapLabel.hidden = true),
+    () => (tapLabel.hidden = false),
+  );
+}
 
 function playFromStart(): void {
   clearTimeout(loopTimer);
   video.currentTime = 0;
-  void video.play().catch(() => undefined);
+  tryPlay();
 }
 
 video.addEventListener("ended", () => {
@@ -55,7 +64,9 @@ video.addEventListener("ended", () => {
   }, LOOP_PAUSE_MS);
 });
 
-$("replay").addEventListener("click", playFromStart);
+video.addEventListener("playing", () => (tapLabel.hidden = true));
+
+$("clip-tap").addEventListener("click", playFromStart);
 
 const slow = $<HTMLButtonElement>("slow");
 slow.addEventListener("click", () => {
@@ -169,8 +180,10 @@ async function solved(s: GameState, fresh = true): Promise<void> {
   intro.hidden = true;
   resultTitle.textContent = n === 1 ? "Solved in one." : `Solved in ${n}.`;
   result.hidden = false;
-  video.muted = false;
-  playFromStart();
+  if (fresh) {
+    video.muted = false;
+    playFromStart();
+  }
   tickCountdown();
   try {
     const stats = fresh ? await postResult(s.number, n) : await fetchStats(s.number);
@@ -249,9 +262,7 @@ async function start(): Promise<void> {
     issue.textContent = `No. ${puzzle.number} · ${formatIssueDate(date)}`;
     state = loadState(puzzle.number);
     video.src = puzzle.clip;
-    video.addEventListener("canplay", () => void video.play().catch(() => undefined), {
-      once: true,
-    });
+    video.addEventListener("canplay", () => video.paused && tryPlay(), { once: true });
     state.guesses.forEach((g, i) => addGuessRow(g, false, state?.matches[i] ?? 0));
     if (state.guesses.length > 0) intro.hidden = true;
     if (state.solved) {
