@@ -12,3 +12,6 @@ updates:
     directory: /pipeline
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: mediapipe
+        update-types: ["version-update:semver-major"]
