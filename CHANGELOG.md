@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.1.0...lipreadle-v0.1.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* **web:** autoplay in Safari and tap the clip to restart ([#16](https://github.com/sean-reid/lipreadle/issues/16)) ([d72fb4a](https://github.com/sean-reid/lipreadle/commit/d72fb4a54811a7de8e26eb2d0b1de6903b8d6365))
+* **web:** keep the tap label clear of WebKit's play glyph ([#18](https://github.com/sean-reid/lipreadle/issues/18)) ([545f7f8](https://github.com/sean-reid/lipreadle/commit/545f7f892bcbee2d9d181d4b4d201da4ad3c100d))
+
 ## 0.1.0 (2026-09-28)
 
 
