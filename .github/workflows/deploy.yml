@@ -1,0 +1,44 @@
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || '860e267e26cbf52bdca301d114b3c203' }}
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://lipreadle.dwainosaur.com
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx wrangler d1 migrations apply lipreadle --remote
+      - run: npx wrangler deploy
+      - name: smoke
+        run: |
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 5 https://lipreadle.dwainosaur.com/ | grep -q Lipreadle
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "https://lipreadle.dwainosaur.com/api/puzzle?date=$(date -u +%F)")
+          case "$code" in 200|404) ;; *) echo "puzzle endpoint returned $code"; exit 1;; esac
