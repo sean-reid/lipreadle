@@ -173,16 +173,13 @@ video {
   object-fit: cover;
 }
 
-video::-webkit-media-controls-start-playback-button {
-  display: none !important;
-  -webkit-appearance: none;
-}
-
 .clip-tap {
   position: absolute;
   inset: 0;
   display: grid;
-  place-items: center;
+  align-content: end;
+  justify-items: center;
+  padding-bottom: 14px;
   width: 100%;
   min-height: 0;
   padding: 0;
