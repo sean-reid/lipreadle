@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.1.1...lipreadle-v0.2.0) (2026-09-28)
+
+
+### Features
+
+* **web:** keep the sound on after a solve ([#22](https://github.com/sean-reid/lipreadle/issues/22)) ([ef494ae](https://github.com/sean-reid/lipreadle/commit/ef494aefb2c6c032cfe6c5e437f99708c4593fdf))
+* **worker:** repeat the schedule when the clips run out ([#20](https://github.com/sean-reid/lipreadle/issues/20)) ([43ae2c1](https://github.com/sean-reid/lipreadle/commit/43ae2c1cc8b850397d7eca387e74138ec7801173))
+
+
+### Bug Fixes
+
+* **web:** load the clip the way iOS Safari needs ([#19](https://github.com/sean-reid/lipreadle/issues/19)) ([9bf4d19](https://github.com/sean-reid/lipreadle/commit/9bf4d19446e358682c6971a46e4468fc49c67638))
+
 ## [0.1.1](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.1.0...lipreadle-v0.1.1) (2026-09-28)
 
 
