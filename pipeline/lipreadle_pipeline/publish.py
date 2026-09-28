@@ -8,17 +8,33 @@ seeded by the word picks one.
 
 import hashlib
 import json
+import os
 import random
 import subprocess
+import sys
 from pathlib import Path
 
 SHUFFLE_SEED = "lipreadle"
+TOKEN_FILE = Path(os.environ.get("LIPREADLE_CF_TOKEN", "~/.config/lipreadle/cf-token")).expanduser()
+
+
+def wrangler_env() -> dict[str, str]:
+    """Wrangler needs R2 and D1 access, which the browser login may lack.
+    An API token in CLOUDFLARE_API_TOKEN, or in TOKEN_FILE, covers it."""
+    env = dict(os.environ)
+    if "CLOUDFLARE_API_TOKEN" not in env and TOKEN_FILE.is_file():
+        env["CLOUDFLARE_API_TOKEN"] = TOKEN_FILE.read_text().strip()
+    return env
 
 
 def wrangler(*args: str, cwd: Path) -> str:
-    return subprocess.run(
-        ["npx", "wrangler", *args], check=True, capture_output=True, text=True, cwd=cwd
-    ).stdout
+    proc = subprocess.run(
+        ["npx", "wrangler", *args], capture_output=True, text=True, cwd=cwd, env=wrangler_env()
+    )
+    if proc.returncode != 0:
+        tail = "\n".join((proc.stderr or proc.stdout).strip().splitlines()[-8:])
+        sys.exit(f"wrangler {' '.join(args[:3])} failed:\n{tail}")
+    return proc.stdout
 
 
 def remote_max_number(root: Path, database: str) -> int:
