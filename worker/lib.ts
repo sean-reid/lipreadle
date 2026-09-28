@@ -88,3 +88,10 @@ export function parseRange(
 export function wordSet(text: string): Set<string> {
   return new Set(text.split(/\r?\n/).filter((w) => w.length === 5));
 }
+
+// Past the last scheduled puzzle the schedule repeats from the start.
+export function wrapNumber(number: number, highest: number): number {
+  if (highest < 1) return number;
+  if (number >= 1 && number <= highest) return number;
+  return ((((number - 1) % highest) + highest) % highest) + 1;
+}

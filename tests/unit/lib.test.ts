@@ -8,6 +8,7 @@ import {
   parseRange,
   puzzleNumber,
   wordSet,
+  wrapNumber,
 } from "../../worker/lib";
 
 describe("puzzleNumber", () => {
@@ -92,5 +93,22 @@ describe("parseRange", () => {
 describe("wordSet", () => {
   it("keeps only five-letter lines", () => {
     expect([...wordSet("brave\nbrav\ncrane\r\n")]).toEqual(["brave", "crane"]);
+  });
+});
+
+describe("wrapNumber", () => {
+  it("leaves scheduled numbers alone", () => {
+    expect(wrapNumber(1, 65)).toBe(1);
+    expect(wrapNumber(65, 65)).toBe(65);
+  });
+  it("repeats the schedule past the end", () => {
+    expect(wrapNumber(66, 65)).toBe(1);
+    expect(wrapNumber(130, 65)).toBe(65);
+    expect(wrapNumber(131, 65)).toBe(1);
+  });
+  it("handles numbers before the epoch and an empty schedule", () => {
+    expect(wrapNumber(0, 65)).toBe(65);
+    expect(wrapNumber(-1, 65)).toBe(64);
+    expect(wrapNumber(7, 0)).toBe(7);
   });
 });
