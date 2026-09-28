@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lipreadle</title>
+    <meta
+      name="description"
+      content="A daily lipreading puzzle. Watch a mouth say a five-letter word, then guess it."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="/fonts/newsreader-24pt.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <script>
+      try {
+        var t = localStorage.getItem("lipreadle:theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <h1 class="wordmark">Lipreadle</h1>
+      <p class="issue" id="issue" aria-live="polite"></p>
+      <button class="theme" id="theme" type="button" aria-label="Switch colour theme">Theme</button>
+    </header>
+
+    <main id="main">
+      <section class="stage" aria-label="Today's clip">
+        <div class="clip-frame">
+          <video
+            id="clip"
+            playsinline
+            muted
+            preload="auto"
+            width="480"
+            height="360"
+            aria-label="A mouth saying today's word"
+          ></video>
+          <p class="notice" id="notice" hidden></p>
+        </div>
+        <div class="controls">
+          <button type="button" id="replay">Replay</button>
+          <button type="button" id="slow" aria-pressed="false">Half speed</button>
+        </div>
+      </section>
+
+      <p class="intro" id="intro">
+        Watch the mouth. Guess the five-letter word. As many tries as you need.
+      </p>
+
+      <form class="guess" id="guess-form" autocomplete="off" novalidate>
+        <label class="visually-hidden" for="guess-input">Your guess</label>
+        <input
+          id="guess-input"
+          class="guess-input"
+          type="text"
+          inputmode="text"
+          autocapitalize="none"
+          autocorrect="off"
+          spellcheck="false"
+          maxlength="5"
+          enterkeyhint="go"
+        />
+        <div class="slots" id="slots" aria-hidden="true">
+          <span class="slot"></span><span class="slot"></span><span class="slot"></span
+          ><span class="slot"></span><span class="slot"></span>
+        </div>
+        <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+      </form>
+
+      <ol class="guesses" id="guesses" aria-label="Your guesses"></ol>
+
+      <section class="result" id="result" hidden aria-live="polite">
+        <h2 class="result-title" id="result-title"></h2>
+        <div class="histogram" id="histogram"></div>
+        <p class="histogram-note" id="histogram-note"></p>
+        <div class="result-actions">
+          <button type="button" id="share">Share</button>
+          <span class="share-done" id="share-done" role="status"></span>
+        </div>
+        <p class="next" id="next"></p>
+      </section>
+    </main>
+
+    <footer class="colophon">
+      <button type="button" class="link" id="how">How to play</button>
+      <button type="button" class="link" id="stats-button">Your stats</button>
+    </footer>
+
+    <dialog id="how-dialog" class="sheet">
+      <h2>How to play</h2>
+      <p>A short clip shows someone saying a five-letter English word. There is no sound.</p>
+      <p>
+        Type a word and press enter. You are told yes or no, nothing else. Keep guessing until you
+        get it. Fewer guesses is a better score.
+      </p>
+      <p>
+        Replay as often as you like. Half speed helps. So does saying the word yourself in a mirror.
+      </p>
+      <p>A new word arrives at midnight, your time.</p>
+      <form method="dialog"><button type="submit">Close</button></form>
+    </dialog>
+
+    <dialog id="stats-dialog" class="sheet">
+      <h2>Your stats</h2>
+      <dl class="stats" id="stats"></dl>
+      <form method="dialog"><button type="submit">Close</button></form>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

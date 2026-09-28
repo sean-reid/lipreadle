@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lipreadle",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "./dist", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "rules": [{ "type": "Text", "globs": ["**/*.txt"] }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lipreadle",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "r2_buckets": [{ "binding": "CLIPS", "bucket_name": "lipreadle-clips" }],
+  "ratelimits": [
+    { "name": "GUESS_RATE", "namespace_id": "1", "simple": { "limit": 60, "period": 60 } },
+    { "name": "RESULT_RATE", "namespace_id": "2", "simple": { "limit": 5, "period": 60 } },
+  ],
+  "routes": [{ "pattern": "lipreadle.dwainosaur.com", "custom_domain": true }],
+  "vars": { "EPOCH": "2026-09-28" },
+}
