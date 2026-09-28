@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.2.0...lipreadle-v0.3.0) (2026-09-28)
+
+
+### Features
+
+* **web:** sort guesses by closeness, then recency ([#23](https://github.com/sean-reid/lipreadle/issues/23)) ([b01d26d](https://github.com/sean-reid/lipreadle/commit/b01d26d138d689b515477a717d20c2e59db519b4))
+
 ## [0.2.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.1.1...lipreadle-v0.2.0) (2026-09-28)
 
 
