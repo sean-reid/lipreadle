@@ -46,8 +46,10 @@ test("rejects non-words and repeats without counting them", async ({ page }) => 
 test("plays through to a solve, shows the histogram, and remembers it", async ({ page }) => {
   await guess(page, "crane", 1);
   await guess(page, "grave", 2);
-  await expect(page.locator("#guesses li .verdict").last()).toHaveText("close");
+  await expect(page.locator("#guesses li .word")).toHaveText(["grave", "crane"]);
+  await expect(page.locator("#guesses li .verdict").first()).toHaveText("close");
   await guess(page, "brave", 3);
+  await expect(page.locator("#guesses li .word")).toHaveText(["brave", "grave", "crane"]);
   await expect(page.locator("#result")).toBeVisible();
   await expect(page.locator("#result-title")).toHaveText("Solved in 3.");
   await expect(page.locator("#guesses li.hit .word")).toHaveText("brave");

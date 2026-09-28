@@ -1,6 +1,7 @@
 import { ApiError, checkGuess, fetchPuzzle, fetchStats, postResult } from "./api";
 import { percentile, render as renderHistogram } from "./histogram";
-import { MATCH_PHRASES, type MatchLevel } from "../shared/feedback";
+import { MATCH_PHRASES } from "../shared/feedback";
+import { guessOrder } from "./order";
 import { share, shareText } from "./share";
 import {
   averageGuesses,
@@ -127,17 +128,23 @@ function shake(): void {
   form.classList.add("shake");
 }
 
-function addGuessRow(word: string, hit: boolean, match: MatchLevel): void {
-  const li = document.createElement("li");
-  li.className = hit ? "hit" : "";
-  const w = document.createElement("span");
-  w.className = "word";
-  w.textContent = word;
-  const v = document.createElement("span");
-  v.className = "verdict";
-  v.textContent = hit ? "yes" : MATCH_PHRASES[match];
-  li.append(w, v);
-  guessList.append(li);
+function renderGuesses(s: GameState): void {
+  const lastIndex = s.guesses.length - 1;
+  guessList.replaceChildren(
+    ...guessOrder(s.matches).map((i) => {
+      const hit = s.solved && i === lastIndex;
+      const li = document.createElement("li");
+      li.className = hit ? "hit" : "";
+      const w = document.createElement("span");
+      w.className = "word";
+      w.textContent = s.guesses[i] ?? "";
+      const v = document.createElement("span");
+      v.className = "verdict";
+      v.textContent = hit ? "yes" : MATCH_PHRASES[s.matches[i] ?? 0];
+      li.append(w, v);
+      return li;
+    }),
+  );
 }
 
 form.addEventListener("submit", async (e) => {
@@ -166,13 +173,14 @@ form.addEventListener("submit", async (e) => {
     intro.hidden = true;
     state.guesses.push(guess);
     state.matches.push(res.match);
-    addGuessRow(guess, res.correct, res.match);
     if (res.correct) {
       state.solved = true;
       answer = guess;
+      renderGuesses(state);
       saveState(state);
       await solved(state);
     } else {
+      renderGuesses(state);
       saveState(state);
       if (input.value.toLowerCase() === guess) input.value = "";
       renderSlots();
@@ -281,15 +289,9 @@ async function start(): Promise<void> {
     issue.textContent = `No. ${puzzle.number} · ${formatIssueDate(date)}`;
     state = loadState(puzzle.number);
     loadClip(puzzle.clip);
-    state.guesses.forEach((g, i) => addGuessRow(g, false, state?.matches[i] ?? 0));
+    renderGuesses(state);
     if (state.guesses.length > 0) intro.hidden = true;
     if (state.solved) {
-      const last = guessList.lastElementChild;
-      if (last) {
-        last.className = "hit";
-        const v = last.querySelector(".verdict");
-        if (v) v.textContent = "yes";
-      }
       answer = state.guesses[state.guesses.length - 1] ?? null;
       await solved(state, false);
     } else {
