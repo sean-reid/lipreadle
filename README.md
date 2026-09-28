@@ -44,6 +44,8 @@ uv run lipreadle review        # approve or reject clips in the browser
 uv run lipreadle publish       # upload approved clips to R2 and schedule them in D1
 ```
 
+`publish` runs wrangler with `CLOUDFLARE_API_TOKEN` from the environment, or from `~/.config/lipreadle/cf-token` (override with `LIPREADLE_CF_TOKEN`), since the browser login usually lacks R2 and D1 access.
+
 `cut` picks the cleanest take in each video by audio energy, head pose, mouth movement and sharpness, and writes a 480x360 H.264 clip with a short still hold at either end. `publish` continues numbering from the last scheduled puzzle and shuffles each batch with a fixed seed. Everything under `data/` stays out of git.
 
 `uv run lipreadle visemes` regenerates `worker/visemes.txt`, the mouth-shape strings behind the guess feedback, from the CMU pronouncing dictionary.
