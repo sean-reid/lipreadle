@@ -22,8 +22,15 @@ POST_ROLL = 0.40
 HOLD_START = 0.25
 HOLD_END = 0.45
 MIN_TAKE = 0.18
+MAX_TAKE = 1.4
 MERGE_GAP = 0.30
 SPEECH_DB_BELOW_PEAK = 30.0
+RESPLIT_DB_STEPS = (24.0, 18.0, 12.0)
+MIN_LEAD = 0.12
+MIN_TAIL = 0.15
+NEIGHBOUR_MARGIN = 0.15
+DIM_RATIO = 0.85
+PREFER_FIRST_MARGIN = 0.75
 MAX_ABS_YAW = 14.0
 MAX_ABS_PITCH = 14.0
 MIN_APERTURE_RANGE = 0.035
@@ -54,6 +61,7 @@ class Take:
     crop: tuple[int, int, int, int]
     score: float
     rejected: str | None
+    flags: list[str]
 
 
 @dataclass
@@ -77,30 +85,51 @@ def audio_energy(path: Path, hop: float = 0.02) -> tuple[np.ndarray, float]:
     return np.sqrt((frames**2).mean(axis=1)), hop
 
 
-def find_takes(rms: np.ndarray, hop: float) -> list[tuple[float, float]]:
+def _segments(
+    rms: np.ndarray, hop: float, db_below_peak: float, lo: int = 0, hi: int | None = None
+):
+    hi = len(rms) if hi is None else hi
+    window = rms[lo:hi]
     peak = float(rms.max())
     if peak <= 0:
         return []
     floor = float(np.percentile(rms, 20))
-    threshold = max(peak * 10 ** (-SPEECH_DB_BELOW_PEAK / 20), floor * 3)
-    active = rms > threshold
+    threshold = max(peak * 10 ** (-db_below_peak / 20), floor * 3)
+    active = window > threshold
     segments: list[tuple[float, float]] = []
     start = None
     for i, on in enumerate(active):
         if on and start is None:
             start = i
         elif not on and start is not None:
-            segments.append((start * hop, i * hop))
+            segments.append(((lo + start) * hop, (lo + i) * hop))
             start = None
     if start is not None:
-        segments.append((start * hop, len(active) * hop))
+        segments.append(((lo + start) * hop, (lo + len(active)) * hop))
     merged: list[tuple[float, float]] = []
-    for s, e in segments:
-        if merged and s - merged[-1][1] < MERGE_GAP:
-            merged[-1] = (merged[-1][0], e)
+    for a, b in segments:
+        if merged and a - merged[-1][1] < MERGE_GAP:
+            merged[-1] = (merged[-1][0], b)
         else:
-            merged.append((s, e))
-    return [(s, e) for s, e in merged if e - s >= MIN_TAKE]
+            merged.append((a, b))
+    return [(a, b) for a, b in merged if b - a >= MIN_TAKE]
+
+
+def find_takes(rms: np.ndarray, hop: float) -> list[tuple[float, float]]:
+    """Speech segments; a segment longer than one word is re-split with a
+    stricter gate, since it usually means noise bridged two utterances."""
+    out: list[tuple[float, float]] = []
+    for a, b in _segments(rms, hop, SPEECH_DB_BELOW_PEAK):
+        if b - a <= MAX_TAKE:
+            out.append((a, b))
+            continue
+        pieces = [(a, b)]
+        for db in RESPLIT_DB_STEPS:
+            pieces = _segments(rms, hop, db, int(a / hop), int(b / hop))
+            if pieces and all(q - p <= MAX_TAKE for p, q in pieces):
+                break
+        out.extend(pieces or [(a, b)])
+    return sorted(out)
 
 
 class Landmarker:
@@ -151,6 +180,7 @@ class FrameInfo:
     yaw: float
     pitch: float
     sharpness: float
+    luma: float
 
 
 def analyse_frames(path: Path, landmarker: Landmarker) -> tuple[list[FrameInfo], int, int, float]:
@@ -175,7 +205,8 @@ def analyse_frames(path: Path, landmarker: Landmarker) -> tuple[list[FrameInfo],
             sharp = mouth_sharpness(bgr, pts)
         else:
             pts, yaw, pitch, sharp = None, 0.0, 0.0, 0.0
-        infos.append(FrameInfo(t, pts, yaw, pitch, sharp))
+        luma = float(cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).mean())
+        infos.append(FrameInfo(t, pts, yaw, pitch, sharp, luma))
         index += 1
     cap.release()
     return infos, width, height, fps
@@ -226,13 +257,46 @@ def judge_take(
     height: int,
     banner_top: float,
     duration: float,
+    prev_end: float | None = None,
+    next_start: float | None = None,
 ) -> Take:
+    flags: list[str] = []
+    rejected = None
+    if end - start > MAX_TAKE:
+        rejected = f"take too long ({end - start:.2f}s)"
     ws = max(0.0, start - PRE_ROLL)
     we = min(duration, end + POST_ROLL)
+    if prev_end is not None and ws < prev_end + NEIGHBOUR_MARGIN:
+        ws = prev_end + NEIGHBOUR_MARGIN
+        flags.append("after previous take")
+    if next_start is not None and we > next_start - NEIGHBOUR_MARGIN:
+        we = next_start - NEIGHBOUR_MARGIN
+        flags.append("before next take")
     window = [f for f in infos if ws <= f.t <= we]
+    if window:
+        median_luma = float(np.median([f.luma for f in window]))
+        dim = [f.t for f in window if f.luma < DIM_RATIO * median_luma]
+        lead_dim = [t for t in dim if t < start]
+        tail_dim = [t for t in dim if t > end]
+        if lead_dim:
+            ws = max(ws, max(lead_dim) + 0.02)
+            flags.append(
+                f"fade in trimmed {max(lead_dim) + 0.02 - max(0.0, start - PRE_ROLL):.2f}s"
+            )
+        if tail_dim:
+            we = min(we, min(tail_dim) - 0.02)
+            flags.append(
+                f"fade out trimmed {min(duration, end + POST_ROLL) - (min(tail_dim) - 0.02):.2f}s"
+            )
+        if any(start <= t <= end for t in dim):
+            rejected = rejected or "fade overlaps speech"
+        window = [f for f in infos if ws <= f.t <= we]
+    if rejected is None and start - ws < MIN_LEAD:
+        rejected = "no room before speech"
+    if rejected is None and we - end < MIN_TAIL:
+        rejected = "no room after speech"
     faces = [f for f in window if f.pts is not None]
-    rejected = None
-    if not window or len(faces) < len(window):
+    if rejected is None and (not window or len(faces) < len(window)):
         rejected = "face lost"
     yaw = float(np.mean([abs(f.yaw) for f in faces])) if faces else 90.0
     pitch = float(np.mean([abs(f.pitch) for f in faces])) if faces else 90.0
@@ -260,7 +324,19 @@ def judge_take(
         + min(ap_range, 0.15) / 0.15
         + min(sharp, 400) / 400
     )
-    return Take(ws, we, yaw, pitch, ap_range, sharp, len(faces), len(window), crop, score, rejected)
+    return Take(
+        ws, we, yaw, pitch, ap_range, sharp, len(faces), len(window), crop, score, rejected, flags
+    )
+
+
+def choose_take(takes: list[Take]) -> Take | None:
+    """The first clean take, unless a later one is clearly better."""
+    usable = [t for t in takes if t.rejected is None]
+    if not usable:
+        return None
+    first = usable[0]
+    best = max(usable, key=lambda t: t.score)
+    return best if best.score - first.score >= PREFER_FIRST_MARGIN else first
 
 
 def encode(src: Path, out: Path, take: Take) -> None:
@@ -293,11 +369,16 @@ def cut(src: Path, out: Path, landmarker: Landmarker, banner_top: float) -> CutR
         return None
     infos, width, height, fps = analyse_frames(src, landmarker)
     duration = len(infos) / fps
-    takes = [judge_take(s, e, infos, width, height, banner_top, duration) for s, e in segments]
-    usable = [t for t in takes if t.rejected is None]
-    if not usable:
+    takes = []
+    for i, (s, e) in enumerate(segments):
+        prev_end = segments[i - 1][1] if i > 0 else None
+        next_start = segments[i + 1][0] if i + 1 < len(segments) else None
+        takes.append(
+            judge_take(s, e, infos, width, height, banner_top, duration, prev_end, next_start)
+        )
+    best = choose_take(takes)
+    if best is None:
         return None
-    best = max(usable, key=lambda t: t.score)
     encode(src, out, best)
     out.with_suffix(".json").write_text(
         json.dumps({"source": src.name, "take": asdict(best), "takes": [asdict(t) for t in takes]})

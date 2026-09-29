@@ -1,7 +1,9 @@
 """A local page for approving cut clips by eye.
 
-Serves data/clips as a grid of looping videos. Keys: j/k move, a approve,
-r reject, u undo. Decisions append to data/review.jsonl.
+Serves data/clips as a grid of looping videos. Rejects are rare, so the
+flow is: click anything bad to reject it, then approve all the rest with
+one key. Cards the cutter had to trim or clamp are marked so the eye goes
+there first. Decisions append to data/review.jsonl.
 """
 
 import json
@@ -13,37 +15,49 @@ PAGE = """<!doctype html>
 <title>Lipreadle review</title>
 <style>
   body { margin: 0; padding: 16px; background: #111; color: #ddd; font: 15px system-ui; }
-  header { display: flex; gap: 16px; align-items: baseline; margin-bottom: 12px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-  .card { border: 3px solid transparent; padding: 4px; }
-  .card.current { border-color: #fff; }
+  header { position: sticky; top: 0; z-index: 1; display: flex; gap: 16px;
+    align-items: center; padding: 8px 0 12px; background: #111; }
+  header button { font: inherit; padding: 6px 12px; background: #222; color: #ddd;
+    border: 1px solid #444; border-radius: 4px; cursor: pointer; }
+  header button[aria-pressed="true"] { background: #ddd; color: #111; }
+  .keys { color: #888; margin-left: auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .card { border: 3px solid transparent; padding: 3px; cursor: pointer; }
+  .card.current { outline: 2px solid #fff; outline-offset: 2px; }
+  .card.flagged { border-color: #b8860b; }
   .card.approved { border-color: #3a3; }
-  .card.rejected { border-color: #a33; opacity: 0.5; }
+  .card.rejected { border-color: #a33; opacity: 0.45; }
+  .hidden { display: none; }
   video { width: 100%; aspect-ratio: 4 / 3; display: block; background: #222; }
-  .meta { display: flex; justify-content: space-between; font-size: 13px; color: #999; }
-  .word { color: #fff; font-size: 17px; }
+  .meta { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: #999; }
+  .word { color: #fff; font-size: 16px; }
+  .flags { color: #d9a441; }
 </style>
 <header>
   <strong>Review</strong>
   <span id="count"></span>
-  <span>j/k move, a approve, r reject, u undo, space replay</span>
+  <button id="approve-all" type="button">Approve all undecided</button>
+  <button id="flagged-only" type="button" aria-pressed="false">Flagged only</button>
+  <span class="keys">click reject, j/k move, a/r/u, A approve all, space replay</span>
 </header>
 <div class="grid" id="grid"></div>
 <script>
 const clips = __CLIPS__;
 const decisions = __DECISIONS__;
 let cur = 0;
+let flaggedOnly = false;
 const grid = document.getElementById("grid");
 const frag = document.createDocumentFragment();
 for (const c of clips) {
   const card = document.createElement("div");
-  card.className = "card";
+  card.className = "card" + (c.flags.length ? " flagged" : "");
   card.dataset.key = c.key;
-  const stats = `yaw ${c.yaw.toFixed(0)} ap ${c.aperture.toFixed(2)} sharp ${c.sharp.toFixed(0)}`;
   const src = `/clips/${c.key}.mp4`;
+  const flags = c.flags.length
+    ? `<span class="flags">${c.flags.join("; ")}</span>`
+    : `<span>${c.length.toFixed(2)}s</span>`;
   card.innerHTML = `<video muted loop playsinline preload="none" data-src="${src}"></video>
-    <div class="meta"><span class="word">${c.word} <small>${c.accent}</small></span>
-    <span>${stats}</span></div>`;
+    <div class="meta"><span class="word">${c.word} <small>${c.accent}</small></span>${flags}</div>`;
   frag.append(card);
 }
 grid.append(frag);
@@ -65,6 +79,7 @@ const io = new IntersectionObserver((entries) => {
 }, { rootMargin: "400px 0px" });
 cards.forEach((c) => io.observe(c));
 
+const visible = () => cards.filter((el) => !el.classList.contains("hidden"));
 function paintCard(i) {
   const el = cards[i];
   if (!el) return;
@@ -75,29 +90,66 @@ function paintCard(i) {
 }
 function paintCount() {
   const done = cards.filter((el) => decisions[el.dataset.key]).length;
-  document.getElementById("count").textContent = `${done} / ${clips.length} decided`;
+  const rejected = cards.filter((el) => decisions[el.dataset.key] === "reject").length;
+  const count = document.getElementById("count");
+  count.textContent = `${done} / ${clips.length} decided, ${rejected} rejected`;
 }
 function moveTo(i) {
   const prev = cur;
-  cur = Math.max(0, Math.min(i, cards.length - 1));
+  const vis = visible();
+  if (!vis.length) return;
+  const at = vis.indexOf(cards[i]);
+  const pos = Math.max(0, Math.min(at < 0 ? 0 : at, vis.length - 1));
+  cur = cards.indexOf(vis[pos]);
   paintCard(prev);
   paintCard(cur);
-  cards[cur]?.scrollIntoView({ block: "center" });
+  cards[cur].scrollIntoView({ block: "center" });
 }
-async function decide(verdict) {
-  const key = cards[cur].dataset.key;
+function step(delta) {
+  const vis = visible();
+  const pos = vis.indexOf(cards[cur]);
+  moveTo(cards.indexOf(vis[Math.max(0, Math.min(pos + delta, vis.length - 1))]));
+}
+function post(list) {
+  return fetch("/decisions", { method: "POST", body: JSON.stringify(list) });
+}
+function decide(i, verdict) {
+  const key = cards[i].dataset.key;
   if (verdict === "undo") delete decisions[key]; else decisions[key] = verdict;
-  paintCard(cur);
+  paintCard(i);
   paintCount();
-  await fetch("/decision", { method: "POST", body: JSON.stringify({ key, verdict }) });
-  if (verdict !== "undo") moveTo(cur + 1);
+  post([{ key, verdict }]);
 }
+function approveAll() {
+  const list = [];
+  for (const el of cards) {
+    if (decisions[el.dataset.key]) continue;
+    decisions[el.dataset.key] = "approve";
+    list.push({ key: el.dataset.key, verdict: "approve" });
+  }
+  cards.forEach((_, i) => paintCard(i));
+  paintCount();
+  if (list.length) post(list);
+}
+function toggleFlagged() {
+  flaggedOnly = !flaggedOnly;
+  document.getElementById("flagged-only").setAttribute("aria-pressed", String(flaggedOnly));
+  for (const el of cards) {
+    el.classList.toggle("hidden", flaggedOnly && !el.classList.contains("flagged"));
+  }
+  moveTo(cur);
+}
+document.getElementById("approve-all").addEventListener("click", approveAll);
+document.getElementById("flagged-only").addEventListener("click", toggleFlagged);
 document.addEventListener("keydown", (e) => {
-  if (e.key === "j") moveTo(cur + 1);
-  else if (e.key === "k") moveTo(cur - 1);
-  else if (e.key === "a") decide("approve");
-  else if (e.key === "r") decide("reject");
-  else if (e.key === "u") { moveTo(cur - 1); decide("undo"); }
+  if (e.target.tagName === "BUTTON") return;
+  if (e.key === "j") step(1);
+  else if (e.key === "k") step(-1);
+  else if (e.key === "a") { decide(cur, "approve"); step(1); }
+  else if (e.key === "r") { decide(cur, "reject"); step(1); }
+  else if (e.key === "u") { step(-1); decide(cur, "undo"); }
+  else if (e.key === "A") approveAll();
+  else if (e.key === "f") toggleFlagged();
   else if (e.key === " ") {
     e.preventDefault();
     const v = cards[cur].querySelector("video");
@@ -106,9 +158,12 @@ document.addEventListener("keydown", (e) => {
     v.play().catch(() => {});
   }
 });
+// Clicking a card rejects it; clicking again takes the rejection back.
 grid.addEventListener("click", (e) => {
   const i = cards.indexOf(e.target.closest(".card"));
-  if (i >= 0) moveTo(i);
+  if (i < 0) return;
+  moveTo(i);
+  decide(i, decisions[cards[i].dataset.key] === "reject" ? "undo" : "reject");
 });
 cards.forEach((_, i) => paintCard(i));
 paintCount();
@@ -142,9 +197,8 @@ def clip_index(clips_dir: Path) -> list[dict]:
                 "key": meta.stem,
                 "word": word,
                 "accent": accent,
-                "yaw": take["yaw"],
-                "aperture": take["aperture_range"],
-                "sharp": take["sharpness"],
+                "length": take["end"] - take["start"],
+                "flags": take.get("flags", []),
             }
         )
     return out
@@ -176,13 +230,14 @@ def serve(clips_dir: Path, review_path: Path, port: int, pending_only: bool) -> 
             self.wfile.write(data)
 
         def do_POST(self):
-            if self.path != "/decision":
+            if self.path != "/decisions":
                 self.send_error(404)
                 return
             length = int(self.headers.get("content-length", "0"))
-            d = json.loads(self.rfile.read(length))
+            batch = json.loads(self.rfile.read(length))
             with review_path.open("a") as f:
-                f.write(json.dumps({"key": d["key"], "verdict": d["verdict"]}) + "\n")
+                for d in batch:
+                    f.write(json.dumps({"key": d["key"], "verdict": d["verdict"]}) + "\n")
             self.send_response(204)
             self.end_headers()
 
