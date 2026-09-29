@@ -1,4 +1,4 @@
-import type { GuessResponse, PuzzleResponse, StatsResponse } from "../shared/api";
+import type { GuessResponse, PuzzleResponse, RevealResponse, StatsResponse } from "../shared/api";
 import {
   clampGuesses,
   dateWithinWindow,
@@ -82,8 +82,27 @@ async function handlePuzzle(url: URL, env: Env): Promise<Response> {
   if (number === null) return error(400, "bad date");
   const row = await loadPuzzle(env, number);
   if (!row) return error(404, "no puzzle");
-  const body: PuzzleResponse = { number, date, clip: `/clip/${number}`, accent: row.accent };
+  const previous = await puzzleRow(env, number - 1);
+  const body: PuzzleResponse = {
+    number,
+    date,
+    clip: `/clip/${number}`,
+    accent: row.accent,
+    yesterday: previous?.word ?? null,
+  };
   return json(body, 200, "public, max-age=60");
+}
+
+async function handleReveal(request: Request, env: Env): Promise<Response> {
+  if (await limited(env.GUESS_RATE, request)) return error(429, "slow down");
+  const body = await readJson(request);
+  if (!body) return error(400, "bad request");
+  const number = body.number;
+  if (typeof number !== "number" || !Number.isInteger(number)) return error(400, "bad number");
+  if (number > latestAllowedNumber(Date.now(), env.EPOCH)) return error(404, "no puzzle");
+  const row = await loadPuzzle(env, number);
+  if (!row) return error(404, "no puzzle");
+  return json({ word: row.word } satisfies RevealResponse);
 }
 
 async function handleGuess(request: Request, env: Env): Promise<Response> {
@@ -184,6 +203,7 @@ export default {
     if (pathname === "/api/puzzle" && method === "GET") return handlePuzzle(url, env);
     if (pathname === "/api/guess" && method === "POST") return handleGuess(request, env);
     if (pathname === "/api/result" && method === "POST") return handleResult(request, env);
+    if (pathname === "/api/reveal" && method === "POST") return handleReveal(request, env);
     const stats = /^\/api\/stats\/(-?\d+)$/.exec(pathname);
     if (stats && method === "GET") return handleStats(stats[1]!, env);
     const clip = /^\/clip\/(-?\d+)$/.exec(pathname);

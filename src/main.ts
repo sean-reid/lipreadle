@@ -1,5 +1,6 @@
-import { ApiError, checkGuess, fetchPuzzle, fetchStats, postResult } from "./api";
+import { ApiError, checkGuess, fetchPuzzle, fetchStats, postResult, revealAnswer } from "./api";
 import { percentile, render as renderHistogram } from "./histogram";
+import { GAVE_UP, GIVE_UP_AFTER } from "../shared/api";
 import { MATCH_PHRASES } from "../shared/feedback";
 import { guessOrder } from "./order";
 import { share, shareText } from "./share";
@@ -8,6 +9,7 @@ import {
   loadState,
   loadStats,
   loadTheme,
+  recordGiveUp,
   recordSolve,
   saveState,
   saveStats,
@@ -34,6 +36,8 @@ const histogramNote = $<HTMLParagraphElement>("histogram-note");
 const shareButton = $<HTMLButtonElement>("share");
 const shareDone = $<HTMLSpanElement>("share-done");
 const next = $<HTMLParagraphElement>("next");
+const giveUpButton = $<HTMLButtonElement>("give-up");
+const yesterday = $<HTMLParagraphElement>("yesterday");
 
 let state: GameState | null = null;
 let answer: string | null = null;
@@ -82,9 +86,9 @@ function loadClip(src: string): void {
   }, AUTOPLAY_GRACE_MS);
 }
 
-// Once solved the clip plays with sound; a restored solve needs this tap to unmute.
+// Once the word is known the clip plays with sound; a restored game needs this tap to unmute.
 $("clip-tap").addEventListener("click", () => {
-  if (state?.solved) video.muted = false;
+  if (state?.solved || state?.gaveUp) video.muted = false;
   playFromStart();
 });
 
@@ -147,9 +151,11 @@ function renderGuesses(s: GameState): void {
   );
 }
 
+const over = (s: GameState): boolean => s.solved || s.gaveUp;
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (!state || state.solved || busy) return;
+  if (!state || over(state) || busy) return;
   const guess = input.value.toLowerCase();
   if (guess.length !== 5) {
     shake();
@@ -178,10 +184,11 @@ form.addEventListener("submit", async (e) => {
       answer = guess;
       renderGuesses(state);
       saveState(state);
-      await solved(state);
+      await finish(state);
     } else {
       renderGuesses(state);
       saveState(state);
+      updateGiveUp();
       if (input.value.toLowerCase() === guess) input.value = "";
       renderSlots();
       playFromStart();
@@ -198,14 +205,59 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-async function solved(s: GameState, fresh = true): Promise<void> {
+// The give-up link appears after enough wrong guesses and asks twice.
+let armTimer: ReturnType<typeof setTimeout> | undefined;
+function updateGiveUp(): void {
+  const show = !!state && !over(state) && state.guesses.length >= GIVE_UP_AFTER;
+  giveUpButton.hidden = !show;
+  if (!show) disarmGiveUp();
+}
+
+function disarmGiveUp(): void {
+  clearTimeout(armTimer);
+  giveUpButton.classList.remove("armed");
+  giveUpButton.textContent = "Give up";
+}
+
+giveUpButton.addEventListener("click", async () => {
+  if (!state || over(state) || busy) return;
+  if (!giveUpButton.classList.contains("armed")) {
+    giveUpButton.classList.add("armed");
+    giveUpButton.textContent = "Show the answer?";
+    armTimer = setTimeout(disarmGiveUp, 4000);
+    return;
+  }
+  disarmGiveUp();
+  busy = true;
+  try {
+    const { word } = await revealAnswer(state.number);
+    state.gaveUp = true;
+    state.answer = word;
+    answer = word;
+    saveState(state);
+    renderGuesses(state);
+    await finish(state);
+  } catch {
+    say("Couldn't fetch the answer. Try again.");
+  } finally {
+    busy = false;
+  }
+});
+
+async function finish(s: GameState, fresh = true): Promise<void> {
   const n = s.guesses.length;
-  input.value = answer ?? s.guesses[n - 1] ?? "";
+  const mine = s.gaveUp ? GAVE_UP : n;
+  input.value = answer ?? "";
   input.disabled = true;
   renderSlots();
-  form.classList.add("solved");
+  form.classList.add(s.gaveUp ? "gave-up" : "solved");
   intro.hidden = true;
-  resultTitle.textContent = n === 1 ? "Solved in one." : `Solved in ${n}.`;
+  giveUpButton.hidden = true;
+  resultTitle.textContent = s.gaveUp
+    ? `The word was ${answer}.`
+    : n === 1
+      ? "Solved in one."
+      : `Solved in ${n}.`;
   result.hidden = false;
   if (fresh) {
     video.muted = false;
@@ -213,9 +265,9 @@ async function solved(s: GameState, fresh = true): Promise<void> {
   }
   tickCountdown();
   try {
-    const stats = fresh ? await postResult(s.number, n) : await fetchStats(s.number);
-    renderHistogram(histogram, stats.counts, n);
-    const p = percentile(stats.counts, n);
+    const stats = fresh ? await postResult(s.number, mine) : await fetchStats(s.number);
+    renderHistogram(histogram, stats.counts, mine);
+    const p = percentile(stats.counts, mine);
     const players = stats.total === 1 ? "player" : "players";
     histogramNote.textContent =
       p === null
@@ -224,12 +276,15 @@ async function solved(s: GameState, fresh = true): Promise<void> {
   } catch {
     histogramNote.textContent = "Today's numbers aren't available right now.";
   }
-  if (fresh) saveStats(recordSolve(loadStats(), s.number, n));
+  if (fresh)
+    saveStats(s.gaveUp ? recordGiveUp(loadStats()) : recordSolve(loadStats(), s.number, n));
 }
 
 shareButton.addEventListener("click", async () => {
   if (!state) return;
-  const outcome = await share(shareText(state.number, state.guesses.length, location.origin));
+  const outcome = await share(
+    shareText(state.number, state.guesses.length, location.origin, state.gaveUp),
+  );
   shareDone.textContent =
     outcome === "copied" ? "Copied." : outcome === "failed" ? "Couldn't copy." : "";
 });
@@ -265,7 +320,9 @@ const statsDialog = $<HTMLDialogElement>("stats-dialog");
 $("stats-button").addEventListener("click", () => {
   const s = loadStats();
   const rows: [string, string][] = [
-    ["Solved", String(s.played)],
+    ["Played", String(s.played)],
+    ["Solved", String(s.solved)],
+    ["Gave up", String(s.gaveUp)],
     ["Average guesses", averageGuesses(s)],
     ["Current streak", String(s.streak)],
     ["Best streak", String(s.bestStreak)],
@@ -290,11 +347,19 @@ async function start(): Promise<void> {
     state = loadState(puzzle.number);
     loadClip(puzzle.clip);
     renderGuesses(state);
+    if (puzzle.yesterday) {
+      yesterday.textContent = `Yesterday: ${puzzle.yesterday}`;
+      yesterday.hidden = false;
+    }
     if (state.guesses.length > 0) intro.hidden = true;
     if (state.solved) {
       answer = state.guesses[state.guesses.length - 1] ?? null;
-      await solved(state, false);
+      await finish(state, false);
+    } else if (state.gaveUp) {
+      answer = state.answer ?? null;
+      await finish(state, false);
     } else {
+      updateGiveUp();
       input.focus({ preventScroll: true });
     }
   } catch (err) {

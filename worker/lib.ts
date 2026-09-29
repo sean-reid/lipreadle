@@ -44,7 +44,7 @@ export function normalizeGuess(raw: unknown): string | null {
 }
 
 export function clampGuesses(raw: unknown): number | null {
-  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1) return null;
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 0) return null;
   return Math.min(raw, MAX_GUESSES_TRACKED);
 }
 
@@ -55,7 +55,7 @@ export function histogram(rows: { guesses: number; n: number }[]): {
   const counts = new Array<number>(MAX_GUESSES_TRACKED + 1).fill(0);
   let total = 0;
   for (const r of rows) {
-    if (r.guesses >= 1 && r.guesses <= MAX_GUESSES_TRACKED) {
+    if (r.guesses >= 0 && r.guesses <= MAX_GUESSES_TRACKED) {
       counts[r.guesses] = r.n;
       total += r.n;
     }

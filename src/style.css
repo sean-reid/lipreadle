@@ -339,6 +339,20 @@ video {
   color: var(--accent);
 }
 
+.guess.gave-up .slot {
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.give-up {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+.give-up button.armed {
+  color: var(--accent);
+}
+
 .result {
   margin: 36px 0 0;
   padding-top: 24px;
@@ -414,10 +428,21 @@ video {
 
 .colophon {
   display: flex;
-  gap: 16px;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   padding-top: 32px;
   font-size: 0.9rem;
+}
+
+.colophon-links {
+  display: flex;
+  gap: 16px;
+}
+
+.yesterday {
+  margin: 0;
+  color: var(--muted);
 }
 
 .sheet {

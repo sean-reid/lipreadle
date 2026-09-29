@@ -58,7 +58,8 @@ describe("clampGuesses", () => {
   it("caps at the tracked maximum", () => {
     expect(clampGuesses(3)).toBe(3);
     expect(clampGuesses(500)).toBe(50);
-    expect(clampGuesses(0)).toBeNull();
+    expect(clampGuesses(0)).toBe(0);
+    expect(clampGuesses(-1)).toBeNull();
     expect(clampGuesses(2.5)).toBeNull();
   });
 });
@@ -66,13 +67,15 @@ describe("clampGuesses", () => {
 describe("histogram", () => {
   it("places counts by guess number and totals them", () => {
     const h = histogram([
+      { guesses: 0, n: 3 },
       { guesses: 1, n: 2 },
       { guesses: 4, n: 7 },
       { guesses: 99, n: 1 },
     ]);
+    expect(h.counts[0]).toBe(3);
     expect(h.counts[1]).toBe(2);
     expect(h.counts[4]).toBe(7);
-    expect(h.total).toBe(9);
+    expect(h.total).toBe(12);
   });
 });
 

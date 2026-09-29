@@ -1,4 +1,5 @@
-export function shareText(number: number, guesses: number, url: string): string {
+export function shareText(number: number, guesses: number, url: string, gaveUp = false): string {
+  if (gaveUp) return `Lipreadle No. ${number}, gave up after ${guesses}\n${url}`;
   const noun = guesses === 1 ? "guess" : "guesses";
   return `Lipreadle No. ${number}, ${guesses} ${noun}\n${url}`;
 }

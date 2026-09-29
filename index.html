@@ -87,6 +87,10 @@
 
       <ol class="guesses" id="guesses" aria-label="Your guesses"></ol>
 
+      <p class="give-up">
+        <button type="button" class="link" id="give-up" hidden>Give up</button>
+      </p>
+
       <section class="result" id="result" hidden aria-live="polite">
         <h2 class="result-title" id="result-title"></h2>
         <div class="histogram" id="histogram"></div>
@@ -100,8 +104,11 @@
     </main>
 
     <footer class="colophon">
-      <button type="button" class="link" id="how">How to play</button>
-      <button type="button" class="link" id="stats-button">Your stats</button>
+      <div class="colophon-links">
+        <button type="button" class="link" id="how">How to play</button>
+        <button type="button" class="link" id="stats-button">Your stats</button>
+      </div>
+      <p class="yesterday" id="yesterday" hidden></p>
     </footer>
 
     <dialog id="how-dialog" class="sheet">
@@ -112,7 +119,10 @@
         the same. Never anything about letters.
       </p>
       <p>Tap the clip to replay it. Half speed helps.</p>
-      <p>Guess until you get it; fewer is better. A new word arrives at midnight, your time.</p>
+      <p>
+        Guess until you get it; fewer is better. Stuck after five? You can give up and see the word.
+      </p>
+      <p>A new word arrives at midnight, your time.</p>
       <form method="dialog"><button type="submit">Close</button></form>
     </dialog>
 

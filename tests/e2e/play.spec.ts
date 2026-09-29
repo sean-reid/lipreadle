@@ -71,6 +71,37 @@ test("plays through to a solve, shows the histogram, and remembers it", async ({
   await expect(page.locator("#clip")).toHaveJSProperty("muted", false);
 });
 
+test("give up appears after five misses, asks twice, and reveals the word", async ({ page }) => {
+  const giveUp = page.locator("#give-up");
+  await expect(giveUp).toBeHidden();
+  const misses = ["crane", "grave", "slate", "trace", "plane"];
+  for (const [i, w] of misses.entries()) await guess(page, w, i + 1);
+  await expect(giveUp).toBeVisible();
+  await expect(giveUp).toHaveText("Give up");
+  await giveUp.click();
+  await expect(giveUp).toHaveText("Show the answer?");
+  await giveUp.click();
+  await expect(page.locator("#result-title")).toHaveText("The word was brave.");
+  await expect(page.locator(".slot").first()).toHaveText("b");
+  await expect(page.locator("#guess-input")).toBeDisabled();
+  await expect(page.locator("#guesses li.hit")).toHaveCount(0);
+  await expect(page.locator("#histogram .label.mine")).toHaveText("gave up");
+  await expect(page.locator("#clip")).toHaveJSProperty("muted", false);
+  await page.screenshot({
+    path: `test-results/shots/${test.info().project.name}-gave-up.png`,
+    fullPage: true,
+  });
+
+  await page.reload();
+  await expect(page.locator("#result-title")).toHaveText("The word was brave.");
+  await expect(page.locator("#give-up")).toBeHidden();
+  await expect(page.locator("#guess-input")).toBeDisabled();
+});
+
+test("shows yesterday's word in the footer", async ({ page }) => {
+  await expect(page.locator("#yesterday")).toHaveText("Yesterday: brave");
+});
+
 test("theme toggle persists across reloads", async ({ page }) => {
   const before = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
   await page.locator("#theme").click();

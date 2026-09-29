@@ -28,6 +28,8 @@ export function bins(counts: number[], mine: number): Bin[] {
       out.push({ label: `${MAX_BINS + 1}+`, count: tail, mine: mine > MAX_BINS });
     }
   }
+  const gaveUp = counts[0] ?? 0;
+  if (gaveUp > 0 || mine === 0) out.push({ label: "gave up", count: gaveUp, mine: mine === 0 });
   return out;
 }
 
@@ -55,9 +57,11 @@ function el(tag: string, className: string, text?: string): HTMLSpanElement {
   return e;
 }
 
+// Give-ups count as worse than any solve; a give-up gets no percentile.
 export function percentile(counts: number[], mine: number): number | null {
-  let total = 0;
-  let notWorse = 0;
+  if (mine === 0) return null;
+  let total = counts[0] ?? 0;
+  let notWorse = total;
   for (let g = 1; g < counts.length; g++) {
     const n = counts[g] ?? 0;
     total += n;
