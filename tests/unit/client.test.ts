@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bins, percentile } from "../../src/histogram";
 import { shareText } from "../../src/share";
-import { EMPTY_STATS, averageGuesses, recordSolve } from "../../src/storage";
+import { EMPTY_STATS, averageGuesses, recordGiveUp, recordSolve } from "../../src/storage";
 import { formatCountdown, localDate, msUntilMidnight } from "../../src/time";
 
 describe("recordSolve", () => {
@@ -19,11 +19,20 @@ describe("recordSolve", () => {
   });
 });
 
+describe("recordGiveUp", () => {
+  it("counts a play but not a solve and ends the streak", () => {
+    const a = recordSolve(recordSolve(EMPTY_STATS, 10, 4), 11, 2);
+    const b = recordGiveUp(a);
+    expect(b).toMatchObject({ played: 3, solved: 2, gaveUp: 1, streak: 0, bestStreak: 2 });
+    expect(b.totalGuesses).toBe(6);
+  });
+});
+
 describe("averageGuesses", () => {
-  it("formats whole and fractional averages", () => {
-    expect(averageGuesses({ ...EMPTY_STATS, played: 2, totalGuesses: 8 })).toBe("4");
-    expect(averageGuesses({ ...EMPTY_STATS, played: 3, totalGuesses: 8 })).toBe("2.7");
-    expect(averageGuesses(EMPTY_STATS)).toBe("0");
+  it("averages over solves only", () => {
+    expect(averageGuesses({ ...EMPTY_STATS, solved: 2, totalGuesses: 8 })).toBe("4");
+    expect(averageGuesses({ ...EMPTY_STATS, solved: 3, totalGuesses: 8 })).toBe("2.7");
+    expect(averageGuesses({ ...EMPTY_STATS, played: 3, gaveUp: 3 })).toBe("0");
   });
 });
 
@@ -31,6 +40,11 @@ describe("shareText", () => {
   it("uses singular for one guess", () => {
     expect(shareText(212, 1, "https://x")).toBe("Lipreadle No. 212, 1 guess\nhttps://x");
     expect(shareText(212, 4, "https://x")).toBe("Lipreadle No. 212, 4 guesses\nhttps://x");
+  });
+  it("says so after a give-up", () => {
+    expect(shareText(212, 7, "https://x", true)).toBe(
+      "Lipreadle No. 212, gave up after 7\nhttps://x",
+    );
   });
 });
 
@@ -74,5 +88,22 @@ describe("percentile", () => {
     counts[5] = 8;
     expect(percentile(counts, 2)).toBe(100);
     expect(percentile(counts, 5)).toBe(80);
+  });
+  it("ranks give-ups below every solve and gives them no percentile", () => {
+    const counts = new Array<number>(51).fill(0);
+    counts[0] = 5;
+    counts[3] = 5;
+    expect(percentile(counts, 3)).toBe(100);
+    expect(percentile(counts, 0)).toBeNull();
+  });
+});
+
+describe("bins with give-ups", () => {
+  it("adds a gave-up row when anyone gave up or I did", () => {
+    const counts = new Array<number>(51).fill(0);
+    counts[0] = 3;
+    const rows = bins(counts, 0);
+    expect(rows[rows.length - 1]).toEqual({ label: "gave up", count: 3, mine: true });
+    expect(bins(new Array<number>(51).fill(0), 2).some((r) => r.label === "gave up")).toBe(false);
   });
 });

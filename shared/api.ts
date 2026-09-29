@@ -5,6 +5,11 @@ export interface PuzzleResponse {
   date: string;
   clip: string;
   accent: string;
+  yesterday: string | null;
+}
+
+export interface RevealResponse {
+  word: string;
 }
 
 export interface GuessRequest {
@@ -30,3 +35,9 @@ export interface StatsResponse {
 }
 
 export const MAX_GUESSES_TRACKED = 50;
+
+// A result of zero guesses records a give-up.
+export const GAVE_UP = 0;
+
+// Wrong guesses before the give-up option appears.
+export const GIVE_UP_AFTER = 5;

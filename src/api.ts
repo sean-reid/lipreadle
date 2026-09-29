@@ -1,4 +1,4 @@
-import type { GuessResponse, PuzzleResponse, StatsResponse } from "../shared/api";
+import type { GuessResponse, PuzzleResponse, RevealResponse, StatsResponse } from "../shared/api";
 
 export class ApiError extends Error {
   constructor(
@@ -40,3 +40,6 @@ export const postResult = (number: number, guesses: number) =>
   request<StatsResponse>("/api/result", post({ number, guesses }));
 
 export const fetchStats = (number: number) => request<StatsResponse>(`/api/stats/${number}`);
+
+export const revealAnswer = (number: number) =>
+  request<RevealResponse>("/api/reveal", post({ number }));

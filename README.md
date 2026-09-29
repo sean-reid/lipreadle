@@ -6,7 +6,7 @@ Live at [lipreadle.dwainosaur.com](https://lipreadle.dwainosaur.com).
 
 ## How it runs
 
-One Cloudflare Worker serves the static page and three small endpoints: today's puzzle number, a guess check, and the day's guess histogram. Puzzles and histograms live in D1, clips in R2. The answer never reaches the browser. The puzzle rolls over at local midnight, so the client sends its local date and the Worker maps it to a puzzle number from `EPOCH` in `wrangler.jsonc`.
+One Cloudflare Worker serves the static page and four small endpoints: today's puzzle number, a guess check, the day's guess histogram, and the answer for anyone who gives up after five misses. Puzzles and histograms live in D1, clips in R2. The answer never reaches the browser. The puzzle rolls over at local midnight, so the client sends its local date and the Worker maps it to a puzzle number from `EPOCH` in `wrangler.jsonc`.
 
 ## Development
 

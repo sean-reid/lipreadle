@@ -5,10 +5,14 @@ export interface GameState {
   guesses: string[];
   matches: MatchLevel[];
   solved: boolean;
+  gaveUp: boolean;
+  answer?: string;
 }
 
 export interface Stats {
   played: number;
+  solved: number;
+  gaveUp: number;
   totalGuesses: number;
   streak: number;
   bestStreak: number;
@@ -17,6 +21,8 @@ export interface Stats {
 
 export const EMPTY_STATS: Stats = {
   played: 0,
+  solved: 0,
+  gaveUp: 0,
   totalGuesses: 0,
   streak: 0,
   bestStreak: 0,
@@ -47,17 +53,21 @@ function write(key: string, value: unknown): void {
 export function loadState(number: number): GameState {
   const s = read<GameState>(STATE_KEY);
   if (s && s.number === number && Array.isArray(s.guesses)) {
-    return { ...s, matches: Array.isArray(s.matches) ? s.matches : [] };
+    return { ...s, matches: Array.isArray(s.matches) ? s.matches : [], gaveUp: s.gaveUp === true };
   }
-  return { number, guesses: [], matches: [], solved: false };
+  return { number, guesses: [], matches: [], solved: false, gaveUp: false };
 }
 
 export function saveState(state: GameState): void {
   write(STATE_KEY, state);
 }
 
+// Before give-ups existed, played counted solves only.
 export function loadStats(): Stats {
-  return { ...EMPTY_STATS, ...(read<Partial<Stats>>(STATS_KEY) ?? {}) };
+  const stored = read<Partial<Stats>>(STATS_KEY) ?? {};
+  const stats = { ...EMPTY_STATS, ...stored };
+  if (stored.solved === undefined) stats.solved = stats.played;
+  return stats;
 }
 
 export function saveStats(stats: Stats): void {
@@ -69,7 +79,9 @@ export function recordSolve(stats: Stats, number: number, guesses: number): Stat
   const consecutive = stats.lastSolved !== null && number === stats.lastSolved + 1;
   const streak = consecutive ? stats.streak + 1 : 1;
   return {
+    ...stats,
     played: stats.played + 1,
+    solved: stats.solved + 1,
     totalGuesses: stats.totalGuesses + guesses,
     streak,
     bestStreak: Math.max(stats.bestStreak, streak),
@@ -77,9 +89,13 @@ export function recordSolve(stats: Stats, number: number, guesses: number): Stat
   };
 }
 
+export function recordGiveUp(stats: Stats): Stats {
+  return { ...stats, played: stats.played + 1, gaveUp: stats.gaveUp + 1, streak: 0 };
+}
+
 export function averageGuesses(stats: Stats): string {
-  if (stats.played === 0) return "0";
-  const avg = stats.totalGuesses / stats.played;
+  if (stats.solved === 0) return "0";
+  const avg = stats.totalGuesses / stats.solved;
   return Number.isInteger(avg) ? String(avg) : avg.toFixed(1);
 }
 
