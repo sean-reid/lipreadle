@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.3.1...lipreadle-v0.4.0) (2026-09-29)
+
+
+### Features
+
+* **pipeline:** reject fades and overlaps, review by exception ([#28](https://github.com/sean-reid/lipreadle/issues/28)) ([a354423](https://github.com/sean-reid/lipreadle/commit/a354423a5b0b6a43bdbfd6860f287991a024f781))
+
 ## [0.3.1](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.3.0...lipreadle-v0.3.1) (2026-09-29)
 
 
