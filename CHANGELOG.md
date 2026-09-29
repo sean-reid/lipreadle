@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.4.0...lipreadle-v0.5.0) (2026-09-29)
+
+
+### Features
+
+* **pipeline:** flag borderline softness and movement instead of rejecting ([#30](https://github.com/sean-reid/lipreadle/issues/30)) ([38b5e70](https://github.com/sean-reid/lipreadle/commit/38b5e70205830e2d2d4bf02fbc669e5ad469e4f2))
+
 ## [0.4.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.3.1...lipreadle-v0.4.0) (2026-09-29)
 
 
