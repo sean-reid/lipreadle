@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.3.0...lipreadle-v0.3.1) (2026-09-29)
+
+
+### Performance
+
+* **pipeline:** load review videos only near the viewport ([#26](https://github.com/sean-reid/lipreadle/issues/26)) ([e39b243](https://github.com/sean-reid/lipreadle/commit/e39b243eeb5d7eb1e042eaa464970b2ee67243f1))
+
 ## [0.3.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.2.0...lipreadle-v0.3.0) (2026-09-28)
 
 
