@@ -37,9 +37,11 @@ def cmd_fetch(args) -> None:
 
 def cmd_cut(args) -> None:
     from .cut import Landmarker, cut
+    from .review import load_decisions
 
     paths.ensure_dirs()
     channels = {c.name: c for c in load_channels(paths.CHANNELS)}
+    approved = {k for k, v in load_decisions(paths.REVIEW).items() if v == "approve"}
     landmarker = Landmarker()
     done = skipped = failed = 0
     for m in read_matches(paths.MATCHES):
@@ -47,16 +49,20 @@ def cmd_cut(args) -> None:
         out = paths.CLIPS / f"{m.key()}.mp4"
         if not src.exists():
             continue
-        if out.exists() and not args.force:
+        # Approved clips are settled; --force re-cuts everything else that exists.
+        if out.exists() and (m.key() in approved or not args.force):
             skipped += 1
             continue
         result = cut(src, out, landmarker, channels[m.channel].banner_top)
         if result is None:
             failed += 1
+            out.unlink(missing_ok=True)
+            out.with_suffix(".json").unlink(missing_ok=True)
             print(f"reject {m.key()}", file=sys.stderr)
         else:
             done += 1
-            print(f"cut {m.key()} {result.take.end - result.take.start:.2f}s")
+            flags = f" [{', '.join(result.take.flags)}]" if result.take.flags else ""
+            print(f"cut {m.key()} {result.take.end - result.take.start:.2f}s{flags}")
         if args.limit and done + failed >= args.limit:
             break
     print(f"cut {done}, skipped {skipped}, rejected {failed}")
@@ -111,7 +117,7 @@ def main() -> None:
 
     c = sub.add_parser("cut", help="cut mouth clips from downloaded sources")
     c.add_argument("--limit", type=int)
-    c.add_argument("--force", action="store_true")
+    c.add_argument("--force", action="store_true", help="re-cut clips that are not approved")
     c.set_defaults(fn=cmd_cut)
 
     r = sub.add_parser("review", help="approve clips in the browser")

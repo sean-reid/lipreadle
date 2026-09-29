@@ -46,6 +46,6 @@ uv run lipreadle publish       # upload approved clips to R2 and schedule them i
 
 `publish` runs wrangler with `CLOUDFLARE_API_TOKEN` from the environment, or from `~/.config/lipreadle/cf-token` (override with `LIPREADLE_CF_TOKEN`), since the browser login usually lacks R2 and D1 access.
 
-`cut` picks the cleanest take in each video by audio energy, head pose, mouth movement and sharpness, and writes a 480x360 H.264 clip with a short still hold at either end. `publish` continues numbering from the last scheduled puzzle and shuffles each batch with a fixed seed. Everything under `data/` stays out of git.
+`cut` finds the takes by audio energy, re-splitting any stretch too long for one word, keeps each window clear of the neighbouring take and of the fade to black, judges head pose, mouth movement and sharpness, prefers the first clean take, and writes a 480x360 H.264 clip with a short still hold at either end. `cut --force` re-cuts anything not yet approved. In `review`, click a clip to reject it and press A to approve the rest; trimmed or clamped clips are marked amber and `f` shows only those. `publish` continues numbering from the last scheduled puzzle and shuffles each batch with a fixed seed. Everything under `data/` stays out of git.
 
 `uv run lipreadle visemes` regenerates `worker/visemes.txt`, the mouth-shape strings behind the guess feedback, from the CMU pronouncing dictionary.
