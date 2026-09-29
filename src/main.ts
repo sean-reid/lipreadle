@@ -253,11 +253,8 @@ async function finish(s: GameState, fresh = true): Promise<void> {
   form.classList.add(s.gaveUp ? "gave-up" : "solved");
   intro.hidden = true;
   giveUpButton.hidden = true;
-  resultTitle.textContent = s.gaveUp
-    ? `The word was ${answer}.`
-    : n === 1
-      ? "Solved in one."
-      : `Solved in ${n}.`;
+  resultTitle.hidden = s.gaveUp;
+  resultTitle.textContent = s.gaveUp ? "" : n === 1 ? "Solved in one." : `Solved in ${n}.`;
   result.hidden = false;
   if (fresh) {
     video.muted = false;
