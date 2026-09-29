@@ -33,8 +33,10 @@ DIM_RATIO = 0.85
 PREFER_FIRST_MARGIN = 0.75
 MAX_ABS_YAW = 14.0
 MAX_ABS_PITCH = 14.0
-MIN_APERTURE_RANGE = 0.035
-MIN_SHARPNESS = 40.0
+MIN_APERTURE_RANGE = 0.02
+SMALL_APERTURE_RANGE = 0.035
+MIN_SHARPNESS = 28.0
+SOFT_SHARPNESS = 40.0
 
 # MediaPipe face mesh indices.
 NOSE_TIP = 1
@@ -314,8 +316,12 @@ def judge_take(
         rejected = f"pitch {pitch:.0f}"
     if rejected is None and ap_range < MIN_APERTURE_RANGE:
         rejected = f"mouth barely moves ({ap_range:.3f})"
+    elif ap_range < SMALL_APERTURE_RANGE:
+        flags.append(f"small mouth movement ({ap_range:.3f})")
     if rejected is None and sharp < MIN_SHARPNESS:
         rejected = f"soft ({sharp:.0f})"
+    elif sharp < SOFT_SHARPNESS:
+        flags.append(f"soft ({sharp:.0f})")
     if rejected is None and crop[3] > banner_top * height:
         rejected = "crop reaches banner"
     score = (
