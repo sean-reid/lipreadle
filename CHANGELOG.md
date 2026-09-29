@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.5.0...lipreadle-v0.6.0) (2026-09-29)
+
+
+### Features
+
+* give up after five misses and see the word ([#32](https://github.com/sean-reid/lipreadle/issues/32)) ([0974d62](https://github.com/sean-reid/lipreadle/commit/0974d62e3200b72c3b4ab7e8a2e21cdb7155fa10))
+
+
+### Bug Fixes
+
+* **web:** no title on a give-up, the word in the slots is the reveal ([#34](https://github.com/sean-reid/lipreadle/issues/34)) ([539fb6b](https://github.com/sean-reid/lipreadle/commit/539fb6b34745913c68aac163f8b4ebe155d56ffe))
+
 ## [0.5.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.4.0...lipreadle-v0.5.0) (2026-09-29)
 
 
