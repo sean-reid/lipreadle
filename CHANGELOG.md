@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.6.0...lipreadle-v0.7.0) (2026-10-03)
+
+
+### Features
+
+* **web:** pin the newest guess above the ranked list ([#35](https://github.com/sean-reid/lipreadle/issues/35)) ([14f97a4](https://github.com/sean-reid/lipreadle/commit/14f97a448deb73e01995825e084807ec7e7a9344))
+
+
+### Dependencies
+
+* bump wrangler to 4.147 for the undici advisories ([#36](https://github.com/sean-reid/lipreadle/issues/36)) ([c225a04](https://github.com/sean-reid/lipreadle/commit/c225a0486f05ffed3290969c89a3dcdce3ab8050))
+
 ## [0.6.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.5.0...lipreadle-v0.6.0) (2026-09-29)
 
 
