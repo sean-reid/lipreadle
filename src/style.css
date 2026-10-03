@@ -324,6 +324,22 @@ video {
   border-bottom: 1px solid var(--rule);
 }
 
+.guesses li.latest {
+  margin-bottom: 14px;
+  border-top: 0;
+  border-bottom: 0;
+  border-radius: 4px;
+  background: var(--shade);
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.guesses li.recent:not(.latest) .word {
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 6px;
+}
+
 .guesses .word {
   letter-spacing: 0.04em;
 }
