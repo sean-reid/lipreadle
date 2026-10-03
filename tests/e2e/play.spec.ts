@@ -4,7 +4,9 @@ async function guess(page: Page, word: string, rowsAfter?: number) {
   const input = page.locator("#guess-input");
   await input.fill(word);
   await input.press("Enter");
-  if (rowsAfter !== undefined) await expect(page.locator("#guesses li")).toHaveCount(rowsAfter);
+  if (rowsAfter !== undefined) {
+    await expect(page.locator("#guesses li:not(.latest)")).toHaveCount(rowsAfter);
+  }
 }
 
 test.beforeEach(async ({ page }) => {
@@ -41,14 +43,22 @@ test("rejects non-words and repeats without counting them", async ({ page }) => 
   await guess(page, "crane");
   await expect(page.locator("#feedback")).toHaveText("Already tried that one.");
   await expect(page.locator("#guesses li")).toHaveCount(1);
+  await guess(page, "slate", 2);
+  await expect(page.locator("#guesses li.latest .word")).toHaveText("slate");
+  await page.screenshot({
+    path: `test-results/shots/${test.info().project.name}-midgame.png`,
+    fullPage: true,
+  });
 });
 
 test("plays through to a solve, shows the histogram, and remembers it", async ({ page }) => {
   await guess(page, "crane", 1);
   await guess(page, "grave", 2);
-  await expect(page.locator("#guesses li .word")).toHaveText(["grave", "crane"]);
-  await expect(page.locator("#guesses li .verdict").first()).toHaveText("close");
+  await expect(page.locator("#guesses li.latest .word")).toHaveText("grave");
+  await expect(page.locator("#guesses li:not(.latest) .word")).toHaveText(["grave", "crane"]);
+  await expect(page.locator("#guesses li:not(.latest) .verdict").first()).toHaveText("close");
   await guess(page, "brave", 3);
+  await expect(page.locator("#guesses li.latest")).toHaveCount(0);
   await expect(page.locator("#guesses li .word")).toHaveText(["brave", "grave", "crane"]);
   await expect(page.locator("#result")).toBeVisible();
   await expect(page.locator("#result-title")).toHaveText("Solved in 3.");

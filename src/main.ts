@@ -132,26 +132,30 @@ function shake(): void {
   form.classList.add("shake");
 }
 
+// The newest guess is pinned above the ranked list once there is a list to rank it in.
 function renderGuesses(s: GameState): void {
   const lastIndex = s.guesses.length - 1;
-  guessList.replaceChildren(
-    ...guessOrder(s.matches).map((i) => {
-      const hit = s.solved && i === lastIndex;
-      const li = document.createElement("li");
-      li.className = hit ? "hit" : "";
-      const w = document.createElement("span");
-      w.className = "word";
-      w.textContent = s.guesses[i] ?? "";
-      const v = document.createElement("span");
-      v.className = "verdict";
-      v.textContent = hit ? "yes" : MATCH_PHRASES[s.matches[i] ?? 0];
-      li.append(w, v);
-      return li;
-    }),
-  );
+  const row = (i: number, extra = ""): HTMLLIElement => {
+    const hit = s.solved && i === lastIndex;
+    const li = document.createElement("li");
+    li.className = [hit ? "hit" : "", i === lastIndex ? "recent" : "", extra].join(" ").trim();
+    const w = document.createElement("span");
+    w.className = "word";
+    w.textContent = s.guesses[i] ?? "";
+    const v = document.createElement("span");
+    v.className = "verdict";
+    v.textContent = hit ? "yes" : MATCH_PHRASES[s.matches[i] ?? 0];
+    li.append(w, v);
+    return li;
+  };
+  const ranked = guessOrder(s.matches).map((i) => row(i));
+  const pin = s.guesses.length >= 2 && !over(s) ? [row(lastIndex, "latest")] : [];
+  guessList.replaceChildren(...pin, ...ranked);
 }
 
-const over = (s: GameState): boolean => s.solved || s.gaveUp;
+function over(s: GameState): boolean {
+  return s.solved || s.gaveUp;
+}
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
