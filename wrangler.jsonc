@@ -19,6 +19,6 @@
     { "name": "GUESS_RATE", "namespace_id": "1", "simple": { "limit": 60, "period": 60 } },
     { "name": "RESULT_RATE", "namespace_id": "2", "simple": { "limit": 5, "period": 60 } },
   ],
-  "routes": [{ "pattern": "lipreadle.dwainosaur.com", "custom_domain": true }],
+  "routes": [{ "pattern": "lipreadle.seanre.id", "custom_domain": true }],
   "vars": { "EPOCH": "2026-09-28" },
 }

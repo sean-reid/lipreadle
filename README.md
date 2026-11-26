@@ -2,7 +2,7 @@
 
 A daily lipreading puzzle. A short muted clip shows a mouth saying a five-letter word. You guess until you get it, and fewer guesses is a better score. Each wrong guess tells you how alike the two words look on the lips, nothing about letters.
 
-Live at [lipreadle.dwainosaur.com](https://lipreadle.dwainosaur.com).
+Live at [lipreadle.seanre.id](https://lipreadle.seanre.id).
 
 ## How it runs
 
