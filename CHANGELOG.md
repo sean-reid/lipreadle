@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.7.0...lipreadle-v0.8.0) (2026-11-26)
+
+
+### Features
+
+* serve the site from lipreadle.seanre.id ([#60](https://github.com/sean-reid/lipreadle/issues/60)) ([e2e71dc](https://github.com/sean-reid/lipreadle/commit/e2e71dc375ac8d2ae237043c7a6849f3373e181a))
+
 ## [0.7.0](https://github.com/sean-reid/lipreadle/compare/lipreadle-v0.6.0...lipreadle-v0.7.0) (2026-10-03)
 
 
